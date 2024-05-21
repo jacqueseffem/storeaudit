@@ -1,11 +1,7 @@
 // Based on https://dartpad.dev/?id=d57c6c898dabb8c6fb41018588b8cf73
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/my_app.dart';
-import 'package:flutter_app/report_detail.dart';
-import 'package:intl/intl.dart';
 
 const Color darkBlue = Color.fromARGB(0, 47, 18, 43);
 
