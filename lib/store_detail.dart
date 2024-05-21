@@ -87,13 +87,13 @@ class _StoreDetailState extends State<StoreDetail> {
       body: Stack(
         children: [
           (report == null || report?.stores == null)
-              ? Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
                   child: Column(
                     children: [
                       ListView.builder(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount:
                             report!.stores![widget.storeIndex].sections.length,
                         itemBuilder: (ctx, sectionIdx) {
@@ -125,7 +125,7 @@ class _StoreDetailState extends State<StoreDetail> {
                                           itemBuilder: (_, imageIdx) {
                                             return Builder(builder: (context) {
                                               return Padding(
-                                                  padding: EdgeInsets.symmetric(
+                                                  padding: const EdgeInsets.symmetric(
                                                       horizontal: 8,
                                                       vertical: 8),
                                                   child: imageIdx == 0
@@ -145,7 +145,7 @@ class _StoreDetailState extends State<StoreDetail> {
                                                             child: Container(
                                                                 decoration:
                                                                     BoxDecoration(
-                                                                  color: Color
+                                                                  color: const Color
                                                                       .fromARGB(
                                                                           255,
                                                                           219,
@@ -156,7 +156,7 @@ class _StoreDetailState extends State<StoreDetail> {
                                                                           .circular(
                                                                               12),
                                                                 ),
-                                                                child: Column(
+                                                                child: const Column(
                                                                   mainAxisAlignment:
                                                                       MainAxisAlignment
                                                                           .center,
@@ -195,12 +195,12 @@ class _StoreDetailState extends State<StoreDetail> {
                                                                           _,
                                                                           __) {
                                                                     return FullScreenPage(
+                                                                      dark:
+                                                                          false,
                                                                       child: Image.network(section
                                                                               .images[
                                                                           imageIdx -
                                                                               1]),
-                                                                      dark:
-                                                                          false,
                                                                     );
                                                                   },
                                                                 ),
@@ -228,7 +228,7 @@ class _StoreDetailState extends State<StoreDetail> {
                                                                 ),
                                                               ),
                                                               child: isEditMode
-                                                                  ? Align(
+                                                                  ? const Align(
                                                                       alignment:
                                                                           Alignment
                                                                               .center,
@@ -259,9 +259,9 @@ class _StoreDetailState extends State<StoreDetail> {
                                                 child: ElevatedButton(
                                                   style: ButtonStyle(
                                                       backgroundColor:
-                                                          MaterialStateProperty
+                                                          WidgetStateProperty
                                                               .all(Colors.red)),
-                                                  child: Text('Remove Section',
+                                                  child: const Text('Remove Section',
                                                       style: TextStyle(
                                                           fontWeight:
                                                               FontWeight.bold)),
@@ -299,7 +299,7 @@ class _StoreDetailState extends State<StoreDetail> {
                                                                 .text,
                                                             descriptionController
                                                                 .text),
-                                                    decoration: InputDecoration(
+                                                    decoration: const InputDecoration(
                                                         hintText:
                                                             'Section Name'),
                                                     style: Theme.of(context)
@@ -314,9 +314,19 @@ class _StoreDetailState extends State<StoreDetail> {
                                                     controller:
                                                         descriptionController,
                                                     maxLines: 10,
-                                                    decoration: InputDecoration(
+                                                    keyboardType: TextInputType.multiline,
+// Suggested code may be subject to a license. Learn more: ~LicenseLog:1117707128.
+                                                    textInputAction: TextInputAction.done,
+                                                    decoration: const InputDecoration(
                                                         hintText:
                                                             'Section notes'),
+                                                            onTapOutside: (s){
+                                                              editSectionFields(
+                                                            sectionIdx,
+                                                            titleController
+                                                                .text,
+                                                            descriptionController
+                                                                .text);},
                                                     onSubmitted: (s) =>
                                                         editSectionFields(
                                                             sectionIdx,
@@ -345,7 +355,7 @@ class _StoreDetailState extends State<StoreDetail> {
                                             decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(100),
-                                              color: Color.fromARGB(
+                                              color: const Color.fromARGB(
                                                       255, 39, 39, 39)
                                                   .withOpacity(0.5),
                                             ),
@@ -370,17 +380,17 @@ class _StoreDetailState extends State<StoreDetail> {
                           );
                         },
                       ),
-                      SizedBox(
+                      const SizedBox(
                         height: 50,
                       )
                     ],
                   ),
                 ),
-          if (isLoading) Center(child: CircularProgressIndicator()),
+          if (isLoading) const Center(child: CircularProgressIndicator()),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        label: Row(
+        label: const Row(
           children: [
             Icon(Icons.add),
             Text('Add Section'),
@@ -485,13 +495,13 @@ class _StoreDetailState extends State<StoreDetail> {
           FocusNode focusNode = FocusNode();
           focusNode.requestFocus();
           return AlertDialog(
-            title: Text('Add a Store Section'),
+            title: const Text('Add a Store Section'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: InputDecoration(hintText: 'Section Title'),
+                  decoration: const InputDecoration(hintText: 'Section Title'),
                   focusNode: focusNode,
                   onSubmitted: (s) {
                     createNewSection(
@@ -512,7 +522,7 @@ class _StoreDetailState extends State<StoreDetail> {
                   );
                   Navigator.pop(context);
                 },
-                child: Text('Add'),
+                child: const Text('Add'),
               )
             ],
           );

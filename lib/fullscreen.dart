@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class FullScreenPage extends StatefulWidget {
-  FullScreenPage({
+  const FullScreenPage({super.key, 
     required this.child,
     required this.dark,
   });
@@ -35,7 +35,7 @@ class _FullScreenPageState extends State<FullScreenPage> {
   @override
   void dispose() {
     // SystemChrome.setEnabledSystemUIOverlays(SystemUiOverlay.values);
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       // Restore your settings here...
     ));
     super.dispose();
@@ -50,7 +50,7 @@ class _FullScreenPageState extends State<FullScreenPage> {
           Stack(
             children: [
               AnimatedPositioned(
-                duration: Duration(milliseconds: 333),
+                duration: const Duration(milliseconds: 333),
                 curve: Curves.fastOutSlowIn,
                 top: 0,
                 bottom: 0,
@@ -71,11 +71,6 @@ class _FullScreenPageState extends State<FullScreenPage> {
               child: MaterialButton(
                 padding: const EdgeInsets.all(15),
                 elevation: 0,
-                child: Icon(
-                  Icons.arrow_back,
-                  color: widget.dark ? Colors.white : Colors.black,
-                  size: 25,
-                ),
                 color: widget.dark ? Colors.black12 : Colors.white70,
                 highlightElevation: 0,
                 minWidth: double.minPositive,
@@ -84,6 +79,11 @@ class _FullScreenPageState extends State<FullScreenPage> {
                   borderRadius: BorderRadius.circular(100),
                 ),
                 onPressed: () => Navigator.of(context).pop(),
+                child: Icon(
+                  Icons.arrow_back,
+                  color: widget.dark ? Colors.white : Colors.black,
+                  size: 25,
+                ),
               ),
             ),
           ),

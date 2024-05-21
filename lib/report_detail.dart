@@ -1,21 +1,17 @@
 import 'dart:async';
-import 'dart:developer';
 // import 'dart:html';
-import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
+import 'package:flutter_app/full_report_view.dart';
 
 import 'package:flutter_app/store_detail.dart';
 
 class ReportDetail extends StatefulWidget {
   final String reportId;
   final String reportName;
-  ReportDetail({
+  const ReportDetail({
     required this.reportId,
     required this.reportName,
     super.key,
@@ -51,14 +47,44 @@ class _ReportDetailState extends State<ReportDetail> {
   }) async {
     try {
       Report newReport = report;
-      newReport.stores?.insert(0, Store(name: title));
+      newReport.stores?.insert(
+        0,
+        Store(
+          name: title,
+          sections: [
+            Section(
+              title: 'QMS',
+            ),
+            Section(
+              title: 'Front of Store',
+            ),
+            Section(
+              title: 'Belted Checkouts',
+            ),
+            Section(
+              title: 'Main Aisle Food',
+            ),
+            Section(
+              title: 'Main Aisle Pet',
+            ),
+            Section(
+              title: 'Gondola Ends/Feature Ladder',
+            ),
+            Section(
+              title: 'Secondary Displays',
+            ),
+          ]
+        ),
+      );
       final newJsonObject = newReport.toJson();
       debugPrint(newJsonObject.toString());
       await FirebaseFirestore.instance.doc('reports/${widget.reportId}').set(
             newJsonObject,
             // SetOptions(merge: true),
           );
-    } catch (e) {}
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   Future<void> reset(String name) async {
@@ -102,20 +128,22 @@ class _ReportDetailState extends State<ReportDetail> {
         builder: (context) {
           TextEditingController nameController = TextEditingController();
           return AlertDialog(
-            title: Text('Add a Store'),
+            title: const Text('Add a Store'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
                   focusNode: focusNode,
-                  decoration: InputDecoration(hintText: 'Store Name'),
+                  decoration: const InputDecoration(hintText: 'Store Name'),
                   onSubmitted: (s) async {
                     await createNewStore(
-                    report: report,
-                    title: nameController.text,
-                  );
-                  Navigator.pop(context);
+                      report: report,
+                      title: nameController.text,
+                    );
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
                   },
                 ),
               ],
@@ -129,7 +157,7 @@ class _ReportDetailState extends State<ReportDetail> {
                   );
                   Navigator.pop(context);
                 },
-                child: Text('Add'),
+                child: const Text('Add'),
               )
             ],
           );
@@ -146,7 +174,9 @@ class _ReportDetailState extends State<ReportDetail> {
             newJsonObject,
             // SetOptions(merge: true),
           );
-    } catch (e) {}
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   void goToStoreDetail(
@@ -178,19 +208,18 @@ class _ReportDetailState extends State<ReportDetail> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     final reportsStream = FirebaseFirestore.instance
         .doc('reports/${widget.reportId}')
         .snapshots();
     final broadcastReport = reportsStream.asBroadcastStream(
       onCancel: (controller) {
-        print('Stream paused');
+        debugPrint('Stream paused');
         controller.pause();
       },
       onListen: (controller) async {
         if (controller.isPaused) {
-          print('Stream resumed');
+          debugPrint('Stream resumed');
           controller.resume();
         }
       },
@@ -212,11 +241,29 @@ class _ReportDetailState extends State<ReportDetail> {
         setState(() {});
       }
     }, onError: (e) {
-      print('error in stream');
+      debugPrint('error in stream');
       setState(() {
         error = e.toString();
       });
     });
+  }
+
+  startExportReport() {
+    if (report==null){
+      _showSnackbarError('This was an error exporting this report');
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) {
+        return FullReportViewPage(report: report!);
+      },
+    ));
+  }
+
+  _showSnackbarError(String errorText){
+    final snackBar = SnackBar(content: Text(errorText));
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   @override
@@ -229,17 +276,35 @@ class _ReportDetailState extends State<ReportDetail> {
               padding: const EdgeInsets.all(8.0),
               child: InkWell(
                 child: Center(
-                    child: isEditMode
-                        ? Text('Done',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold))
-                        : Icon(Icons.edit, color: Colors.white)),
+                  child: isEditMode
+                      ? Text('Done',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold))
+                      : Icon(
+                          Icons.edit,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                ),
                 onTap: () {
                   toggleEditMode();
                 },
               ),
-            )
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: InkWell(
+                child: Center(
+                  child: Icon(
+                          CupertinoIcons.share,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                ),
+                onTap: () {
+                  startExportReport();
+                },
+              ),
+            ),
           ],
         ),
         body: Padding(
@@ -247,24 +312,24 @@ class _ReportDetailState extends State<ReportDetail> {
                 const EdgeInsets.only(left: 8, right: 8, top: 6, bottom: 0),
             child: Builder(builder: (context) {
               if (isLoading || report == null) {
-                return Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator());
               }
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     Text(
                       'Stores',
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
-                    SizedBox(
+                    const SizedBox(
                       height: 10,
                     ),
                     if (report != null && report!.stores != null)
                       ListView.builder(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount: report!.stores!.length,
                         itemBuilder: (_, index) {
                           return Card(
@@ -277,17 +342,15 @@ class _ReportDetailState extends State<ReportDetail> {
                                         return AlertDialog(
                                           content: Text(
                                               "Delete Store: '${report!.stores![index].name}' ?",
-                                              style: TextStyle(
-                                                  fontWeight:
-                                                      FontWeight.bold)),
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold)),
                                           actions: [
                                             TextButton(
-                                                child: Text('Delete',
+                                                child: const Text('Delete',
                                                     style: TextStyle(
                                                         color: Colors.red)),
                                                 onPressed: () {
-                                                  Navigator.pop(
-                                                      context, true);
+                                                  Navigator.pop(context, true);
                                                 })
                                           ],
                                         );
@@ -302,11 +365,12 @@ class _ReportDetailState extends State<ReportDetail> {
                               },
                               title: Text(
                                 report?.stores?[index].name ?? '',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                               trailing: isEditMode
-                                  ? Icon(Icons.delete, color: Colors.red)
-                                  : Icon(Icons.arrow_forward_ios,
+                                  ? const Icon(Icons.delete, color: Colors.red)
+                                  : const Icon(Icons.arrow_forward_ios,
                                       color: Colors.black),
                             ),
                           );
@@ -320,7 +384,7 @@ class _ReportDetailState extends State<ReportDetail> {
         floatingActionButton: report != null
             ? FloatingActionButton.extended(
                 onPressed: () => onAddStore(context, report!),
-                label: Row(
+                label: const Row(
                   children: [
                     Icon(Icons.add, color: Colors.white),
                     Text('Add New Store',
@@ -373,13 +437,13 @@ class Store {
   Store({this.sections = const [], this.callOuts, this.name, this.summary});
 
   factory Store.fromJson(Map<String, dynamic> json) {
-    List<Section> _sections = [];
+    List<Section> sections = [];
     for (Map<String, dynamic> section in json['sections'] ?? []) {
       final sec = Section.fromJson(section);
-      _sections.add(sec);
+      sections.add(sec);
     }
     return Store(
-      sections: _sections,
+      sections: sections,
       callOuts: CallOut.fromJson(json['callOuts'] ?? {}),
       name: json['name'],
       summary: Summary.fromJson(json['summary'] ?? {}),

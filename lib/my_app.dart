@@ -10,17 +10,17 @@ import 'package:flutter_app/report_detail.dart';
 import 'package:intl/intl.dart';
 
 class MyApp extends StatelessWidget {
-  MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      color: Color.fromARGB(255, 0, 0, 160),
+      color: const Color.fromARGB(255, 0, 0, 160),
       theme: ThemeData(
-          primaryColor: Color.fromARGB(255, 0, 0, 160),
-          cardColor: Color.fromARGB(255, 233, 233, 233),
-          floatingActionButtonTheme: FloatingActionButtonThemeData(
+          primaryColor: const Color.fromARGB(255, 0, 0, 160),
+          cardColor: const Color.fromARGB(255, 233, 233, 233),
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
             backgroundColor: Color.fromARGB(255, 0, 215, 185),
           )),
       home: FlutterSplashScreen.fadeIn(
@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ConstrainedBox(
-              constraints: BoxConstraints(
+              constraints: const BoxConstraints(
                 maxWidth: 600,
               ),
               child: FractionallySizedBox(
@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
                 ),
               ),
             ),
-            Text('Field Sales - Store Audit Tool',
+            const Text('Field Sales - Store Audit Tool',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20))
           ],
         ),
@@ -143,7 +143,7 @@ class ReportView extends StatelessWidget {
                     itemBuilder: (_, index) {
                       final report = reports[index];
                       return Dismissible(
-                        key: Key('${report.id}'),
+                        key: Key(report.id),
                         direction: DismissDirection.endToStart,
                         onDismissed: (direction) {
                           deleteReport(report.id);
@@ -155,11 +155,11 @@ class ReportView extends StatelessWidget {
                                 return AlertDialog(
                                   content: Text(
                                       "Delete Report: '${report.name} ?",
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.bold)),
                                   actions: [
                                     TextButton(
-                                        child: Text('Delete',
+                                        child: const Text('Delete',
                                             style:
                                                 TextStyle(color: Colors.red)),
                                         onPressed: () {
@@ -171,11 +171,12 @@ class ReportView extends StatelessWidget {
                           if (res != null && res) {
                             return true;
                           }
+                          return null;
                         },
                         background: Container(
                           color: Colors.red,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
@@ -191,14 +192,14 @@ class ReportView extends StatelessWidget {
                               goToReport(report.id, report.name ?? '', context);
                             },
                             title: Text(report.name ?? '',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                                style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: (report.created != null &&
                                     report.created! > 100000000)
                                 ? Text(DateFormat('dd/MM/yyyy').format(
                                     DateTime.fromMillisecondsSinceEpoch(
                                         report.created!)))
                                 : null,
-                            trailing: Icon(Icons.arrow_forward_ios,
+                            trailing: const Icon(Icons.arrow_forward_ios,
                                 color: Colors.black),
                           ),
                         ),
@@ -213,7 +214,7 @@ class ReportView extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => onTapAddReport(context),
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -238,14 +239,14 @@ class ReportView extends StatelessWidget {
           FocusNode node = FocusNode();
           node.requestFocus();
           return AlertDialog(
-            title: Text('Create a report'),
+            title: const Text('Create a report'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
                   focusNode: node,
-                  decoration: InputDecoration(hintText: 'Name Name'),
+                  decoration: const InputDecoration(hintText: 'Name Name'),
                   onSubmitted: (s) => createReport(s),
                 ),
               ],
@@ -256,7 +257,7 @@ class ReportView extends StatelessWidget {
                   await createReport(nameController.text);
                   Navigator.of(context).pop();
                 },
-                child: Text('Add'),
+                child: const Text('Add'),
               )
             ],
           );

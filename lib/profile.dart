@@ -4,7 +4,7 @@ import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/src/widgets/placeholder.dart';
 
 class ProfilePage extends StatefulWidget {
-  ProfilePage({super.key});
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -32,8 +32,8 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${user?.email}', style: TextStyle(fontSize: 35)),
-            SizedBox(
+            Text('${user?.email}', style: const TextStyle(fontSize: 35)),
+            const SizedBox(
               height: 15,
             ),
             ElevatedButton(
@@ -42,7 +42,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 _logout();
 
               },
-              child: Text('Logout'),
+              child: const Text('Logout'),
             ),
           ],
         ),

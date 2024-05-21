@@ -20,7 +20,7 @@ class AuthPage extends StatelessWidget {
           debugPrint('user: ${snapshot.data}');
           User? user;
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else {
             user = snapshot.data;
             if (user == null) {
@@ -36,7 +36,7 @@ class AuthPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ConstrainedBox(
-                          constraints: BoxConstraints(
+                          constraints: const BoxConstraints(
                             maxWidth: 600,
                           ),
                           child: FractionallySizedBox(
@@ -50,11 +50,11 @@ class AuthPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Text('Field Sales - Store Audit Tool',
+                        const Text('Field Sales - Store Audit Tool',
                             style: TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 20),
                             textAlign: TextAlign.center),
-                        SizedBox(
+                        const SizedBox(
                           width: double.infinity,
                         ),
                       ],
@@ -65,11 +65,11 @@ class AuthPage extends StatelessWidget {
                         children: [
                           TextField(
                             controller: emailController,
-                            decoration: InputDecoration(hintText: 'E-mail'),
+                            decoration: const InputDecoration(hintText: 'E-mail'),
                           ),
                           TextField(
                             controller: passwordController,
-                            decoration: InputDecoration(hintText: 'Password'),
+                            decoration: const InputDecoration(hintText: 'Password'),
                             onSubmitted: (s) async {
                               final error = await loginWithEmailAndPassword(
                                 email: emailController.text,
@@ -91,7 +91,7 @@ class AuthPage extends StatelessWidget {
                       ),
                     ),
                     ElevatedButton(
-                      child: Text('Login'),
+                      child: const Text('Login'),
                       onPressed: () async {
                         final error = await loginWithEmailAndPassword(
                           email: emailController.text,
