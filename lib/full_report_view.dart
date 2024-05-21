@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+// import 'dart:html' as html;
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/report_detail.dart';
@@ -20,6 +23,7 @@ class FullReportViewPage extends StatefulWidget {
 class _FullReportViewPageState extends State<FullReportViewPage> {
   Uint8List? imageFile;
   final pdf = pw.Document();
+  String status = 'not started';
 
   late Report report;
 
@@ -29,21 +33,55 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
   void initState() {
     super.initState();
     report = widget.report;
-    buildPdf();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await buildPdf();
+    });
   }
 
   buildPdf() async {
-    final fullPage = await buildFullList();
-    pdf.addPage(pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.Center(
-            child: fullPage,
-          ); // Center
-        })); //
-    final file = File("fullreport.pdf");
-    await file.writeAsBytes(await pdf.save());
-    log('Saved!');
+    setState(() {
+      status = 'building';
+    });
+    try {
+      final fullPage = await buildFullList();
+      final font = await PdfGoogleFonts.cardoRegular();
+      pdf.addPage(pw.Page(
+// Suggested code may be subject to a license. Learn more: ~LicenseLog:4062197564.
+          theme: pw.ThemeData(defaultTextStyle: pw.TextStyle(font: font)),
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Center(
+              child: fullPage,
+            ); // Center
+          })); //
+
+      final bytes = await pdf.save();
+      final url =
+          await download(bytes, downloadName: widget.report.name ?? 'report');
+      setState(() {
+        status = 'done, url: $url';
+      });
+      debugPrint('Saved!: $url');
+    } catch (e, s) {
+      setState(() {
+        status = 'error building pdf ${e.toString()}, stack: $s';
+      });
+    }
+  }
+
+  Future<String?> download(
+    Uint8List file, {
+    required String downloadName,
+  }) async {
+    // Upload to firebase storage
+    final res = await FirebaseStorage.instance
+        .ref('uploads/$downloadName')
+        .putData(file, SettableMetadata(contentType: 'application/pdf'));
+    // Get url
+    final pdfUrl = await res.ref.getDownloadURL();
+    // Open in browser
+    // html.window.open(pdfUrl, '_blank');
+    return pdfUrl;
   }
 
   @override
@@ -54,29 +92,31 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Text('Exporting...'),
+        child: Text(status),
       ),
     );
   }
 
   Future<pw.Widget> buildFullList() async {
     List<pw.Widget> storeWidgets = [];
-    for (var store in report.stores ?? []) {
+    for (var store in report.stores??[]) {
       storeWidgets.add(await buildStoreWidget(store));
     }
-    return pw.ListView(
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text('Report ID: ${report.id}', style: pw.TextStyle(fontSize: 16)),
+        pw.Text('Report ID: ${report.id}', style: pw.TextStyle(fontSize: 16, font: pw.Font.courier())),
         pw.SizedBox(height: 8),
         pw.Text('Created: ${report.created}',
-            style: pw.TextStyle(fontSize: 16)),
+            style: pw.TextStyle(fontSize: 16, font: pw.Font.courier())),
         pw.SizedBox(height: 8),
+        pw.Text('Stores:'),
         report.stores != null
             ? pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: storeWidgets,
               )
-            : pw.Text('No stores available'),
+            : pw.Text('No stores available', style: pw.TextStyle(fontSize: 16, font: pw.Font.courier())),
       ],
     );
   }
@@ -84,25 +124,28 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
   Future<pw.Widget> buildStoreWidget(Store store) async {
     List<pw.Widget> sections = [];
     for (var section in store.sections) {
-      sections.add(await buildSectionWidget(section));
+      try {
+      final sec = await buildSectionWidget(section);
+      sections.add(sec);
+      }catch (e){
+        debugPrint('Error building section: $e');
+        continue;
+      }
     }
     return pw.Container(
+// Suggested code may be subject to a license. Learn more: ~LicenseLog:3638933056.
+      color: PdfColor.fromHex('fcba03'),
       margin: pw.EdgeInsets.symmetric(vertical: 8),
-      child: pw.Padding(
-        padding: const pw.EdgeInsets.all(16.0),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Store Name: ${store.name ?? 'Unknown'}',
-                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 8),
-            // (store.callOuts != null || store.callOuts?.title != null) ? buildCallOutWidget(store.callOuts!) : Container(),
-            // // store.summary != null ? buildSummaryWidget(store.summary!) : Container(),
-            pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: sections),
-          ],
-        ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        mainAxisSize: pw.MainAxisSize.min,
+        children: [
+          pw.Text('Store Name: ${store.name ?? 'Unknown'}'),
+          pw.SizedBox(height: 8),
+          // (store.callOuts != null || store.callOuts?.title != null) ? buildCallOutWidget(store.callOuts!) : Container(),
+          // // store.summary != null ? buildSummaryWidget(store.summary!) : Container(),
+          ...sections,
+        ],
       ),
     );
   }
@@ -111,7 +154,7 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
   //   return pw.Column(
   //     crossAxisAlignment: pw.CrossAxisAlignment.start,
   //     children: [
-  //       pw.Text('CallOut: ${callOut.title?? ''}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+  //       pw.Text('CallOut: ${callOut.title?? ''}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: pw.Font.courier())),
   //       pw.SizedBox(height: 8),
   //       pw.Column(
   //         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -130,27 +173,28 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
   //   return Column(
   //     crossAxisAlignment: CrossAxisAlignment.start,
   //     children: [
-  //       Text('Summary: ${summary.title}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+  //       Text('Summary: ${summary.title}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, font: pw.Font.courier())),
   //       SizedBox(height: 8),
-  //       Text(summary.description ?? 'No description'),
+  //       Text(summary.description ?? 'No description', font: pw.Font.courier()),
   //     ],
   //   );
   // }
 
   Future<pw.Widget> buildSectionWidget(Section section) async {
-    final sectionImages =
-        await Future.wait(section.images.map((imageUrl) async {
+    List sectionImages = [];
+    for (var imageUrl in section.images) {
       final netImage = await networkImage(imageUrl);
-      return pw.Image(netImage, fit: pw.BoxFit.contain, height: 200);
-    }).toList());
+      sectionImages.add(pw.Image(netImage, fit: pw.BoxFit.contain, height: 200));
+    }
+   
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text('Section: ${section.title}',
-            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: pw.Font.courier())),
         pw.SizedBox(height: 8),
-        pw.Text(section.description ?? 'No description'),
+        pw.Text(section.description ?? 'No description', style: pw.TextStyle(font: pw.Font.courier())),
         pw.Column(
           children:
               sectionImages.map((image) => pw.Image(image.image)).toList(),

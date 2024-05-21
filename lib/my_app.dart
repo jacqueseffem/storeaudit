@@ -18,11 +18,19 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       color: const Color.fromARGB(255, 0, 0, 160),
       theme: ThemeData(
-          primaryColor: const Color.fromARGB(255, 0, 0, 160),
-          cardColor: const Color.fromARGB(255, 233, 233, 233),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: Color.fromARGB(255, 0, 215, 185),
-          )),
+        primaryColor: const Color.fromARGB(255, 0, 0, 160),
+        cardColor: const Color.fromARGB(255, 233, 233, 233),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Color.fromARGB(255, 0, 215, 185),
+        ),
+        textTheme: const TextTheme(
+          headlineMedium: TextStyle(
+            color: Colors.white,
+          ),
+          
+        ),
+        fontFamilyFallback: ['Arial'],
+      ),
       home: FlutterSplashScreen.fadeIn(
         backgroundColor: Colors.white,
         onInit: () {
@@ -88,7 +96,7 @@ class ReportView extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: (){
+                  onTap: () {
                     onProfilePicTap(context);
                   },
                   child: user.photoURL != null
@@ -192,7 +200,8 @@ class ReportView extends StatelessWidget {
                               goToReport(report.id, report.name ?? '', context);
                             },
                             title: Text(report.name ?? '',
-                                style: const TextStyle(fontWeight: FontWeight.bold)),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
                             subtitle: (report.created != null &&
                                     report.created! > 100000000)
                                 ? Text(DateFormat('dd/MM/yyyy').format(
@@ -219,7 +228,7 @@ class ReportView extends StatelessWidget {
     );
   }
 
-  void onProfilePicTap(BuildContext ctx){
+  void onProfilePicTap(BuildContext ctx) {
     Navigator.push(ctx, MaterialPageRoute(builder: (_) {
       return ProfilePage();
     }));
