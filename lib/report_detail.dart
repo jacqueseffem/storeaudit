@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 // import 'dart:html';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -463,11 +464,13 @@ class Store {
 class Section {
   String? title;
   List<String> images;
+  List<Uint8List>? imageBytes;
   String? description;
 
   Section({
     this.title,
     this.images = const [],
+    this.imageBytes,
     this.description,
   });
 

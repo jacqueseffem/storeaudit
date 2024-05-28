@@ -59,7 +59,8 @@ class MyApp extends StatelessWidget {
               ),
             ),
             const Text('Field Sales - Store Audit Tool',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20))
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            const Text('v1build12'),
           ],
         ),
         onAnimationEnd: () => debugPrint("On Fade In End"),

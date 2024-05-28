@@ -36,7 +36,5 @@ void main() async {
   // with each user.
   // await FirebaseAuth.instance.signInAnonymously();
 
-  runApp(MyApp(
-    
-  ));
+  runApp(const MyApp());
 }

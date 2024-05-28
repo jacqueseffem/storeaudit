@@ -4,9 +4,12 @@ import 'dart:io';
 // import 'dart:html' as html;
 
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/pdf_view_page.dart';
 import 'package:flutter_app/report_detail.dart';
+import 'package:image_network/image_network.dart';
 // import 'package:screenshot/screenshot.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -25,71 +28,74 @@ class FullReportViewPage extends StatefulWidget {
 class _FullReportViewPageState extends State<FullReportViewPage> {
   Uint8List? imageFile;
   final pdf = pw.Document();
-  String status = 'not started';
+  bool loading = false;
   String? downloadUrl;
 
   late Report report;
+  late final reportWidget;
 
   ScreenshotController screenshotController = ScreenshotController();
+
+// Suggested code may be subject to a license. Learn more: ~LicenseLog:340142623.
+  
 
   @override
   void initState() {
     super.initState();
     report = widget.report;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await buildPdf();
-    });
+    reportWidget = FullReportWidget(
+    report: report
+  );
+  }
+
+  _goToPdfPage(Report report) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfViewPage(
+          report: report,
+        ),
+      ),
+    );
   }
 
   buildPdf() async {
     setState(() {
-      status = 'building';
+      loading = true;
     });
-    screenshotController.capture().then((image) async {
-      if (image == null) {
+    try {
+      await screenshotController
+          .captureFromLongWidget(
+        pixelRatio: 2,
+        InheritedTheme.captureAll(
+          context,
+          Material(
+            child: reportWidget,
+          ),
+        ),
+        delay: const Duration(milliseconds: 3500),
+        context: context,
+      )
+          .then((image) async {
+        final url = await getDownloadUrl(image,
+            downloadName: widget.report.name ?? 'report',
+            contentType: 'image/png');
         setState(() {
-          status = 'No image';
+          loading = false;
+          _showErrorSnackbar('Image Generated: $url');
+          if (url != null) {
+            downloadUrl = url;
+          }
         });
-        return;
-      }
-      final url = await getDownloadUrl(image,
-          downloadName: widget.report.name ?? 'report', contentType: 'image/png');
-      setState(() {
-        status = 'Saved!';
-        downloadUrl = url;
+        await _openUrl(downloadUrl!);
       });
-    }).catchError((onError) {
-      print(onError);
-    });
-//     try {
-//       final fullPage = await buildFullList();
-//       final font = await PdfGoogleFonts.cardoRegular();
-//       pdf.addPage(
-//         pw.Page(
-// // Suggested code may be subject to a license. Learn more: ~LicenseLog:4062197564.
-//           theme: pw.ThemeData(defaultTextStyle: pw.TextStyle(font: font)),
-//           pageFormat: PdfPageFormat.a4,
-//           build: (pw.Context context) {
-//             return pw.Center(
-//               child: fullPage,
-//             ); // Center
-//           },
-//         ),
-//       ); //
-
-//       final bytes = await pdf.save();
-//       final url = await getDownloadUrl(bytes,
-//           downloadName: widget.report.name ?? 'report');
-//       setState(() {
-//         status = 'Saved!';
-//         downloadUrl = url;
-//       });
-//       debugPrint('Saved!: $url');
-//     } catch (e, s) {
-//       setState(() {
-//         status = 'error building pdf ${e.toString()}, stack: $s';
-//       });
-//     }
+    } catch (e) {
+      log(e.toString());
+      setState(() {
+        loading = false;
+      });
+      _showErrorSnackbar(e.toString());
+    }
   }
 
   Future<String?> getDownloadUrl(
@@ -103,15 +109,13 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
         .putData(file, SettableMetadata(contentType: contentType));
     // Get url
     final pdfUrl = await res.ref.getDownloadURL();
-    // Open in browser
-    // html.window.open(pdfUrl, '_blank');
     return pdfUrl;
   }
 
   _openUrl(String url) async {
     Uri? uri = Uri.tryParse(url);
     if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(uri, webOnlyWindowName: '_blank');
     } else {
       _showErrorSnackbar('Could not open url');
     }
@@ -129,18 +133,41 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(report.name ?? 'Report Details'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              if (loading) {
+                return;
+              }
+              if (downloadUrl == null) {
+                buildPdf();
+              } else {
+                _openUrl(downloadUrl!);
+              }
+            },
+            icon: loading
+                ? const CircularProgressIndicator()
+                : const Icon(CupertinoIcons.printer),
+          ),
+          IconButton(
+            onPressed: () {
+              _goToPdfPage(report);
+            },
+            icon: const Icon(CupertinoIcons.doc_text_fill),
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(child: FullReportWidget(report: report)),
-      ),
+      body: SingleChildScrollView(child: reportWidget),
     );
   }
 }
 
 class FullReportWidget extends StatelessWidget {
+  final double? width;
+
   const FullReportWidget({
     super.key,
+    this.width,
     required this.report,
   });
 
@@ -148,68 +175,121 @@ class FullReportWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-    
-        // Title
-        Text('${report.name}', style: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Colors.black)),
-        SizedBox(height: 0),
-    
-        // Date
-        report.created!=null?
-        Column(
+    return SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_dateTimeToHuman(DateTime.fromMillisecondsSinceEpoch(report.created!)), style: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Colors.black)),
-            SizedBox(height: 20),
-          ],
-        ):SizedBox(),
-        
-    
-        // Date
-    
-        // Stores
-        Text('${report.stores?.length??''} Store(s)', style: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Colors.black)),
-        SizedBox(height: 20),
-        for (Store store in report.stores??[])
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black, width: 1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: EdgeInsets.only(bottom: 40),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
+            // Title
+            Text('${report.name}',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium!
+                    .copyWith(color: Colors.black)),
+
+            // Date
+            report.created != null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                          _dateTimeToHuman(DateTime.fromMillisecondsSinceEpoch(
+                              report.created!)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium!
+                              .copyWith(color: Colors.black)),
+                      const SizedBox(height: 20),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+
+            // Date
+
+            // Stores
+            Text('${report.stores?.length ?? ''} Store(s)',
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium!
+                    .copyWith(color: Colors.black)),
+            const SizedBox(height: 20),
+            for (Store store in report.stores ?? [])
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                margin: const EdgeInsets.only(bottom: 40),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                      ),
+                      // Store Name
+                      Text(store.name ?? 'Unnamed Store',
+                          style: const TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold)),
+                      // Store Sections
+                      for (Section section in store.sections)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Section Title
+                            Text(section.title ?? 'Unnamed Section',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            // Section Images
+
+                            Wrap(
+                              alignment: WrapAlignment.start,
+                              children: [
+                                for (String image in section.images)
+                                  Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: 
+                                      ImageNetwork(
+                                        image: image,
+                                        width: 160,
+                                        height: 200,
+                                        fitWeb: BoxFitWeb.cover,
+                                        fitAndroidIos: BoxFit.cover,
+
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            // Section Description
+                            Text(
+                              section.description ?? 'No Notes',
+                              style: const TextStyle(
+                                  color: Color.fromARGB(255, 92, 92, 92)),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      // Call Out
+                      // Summary
+                    ],
                   ),
-                  // Store Name
-                  Text(store.name??'Unnamed Store', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  // Store Sections
-                  for (Section section in store.sections)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Section Title
-                        Text(section.title??'Unnamed Section', style: TextStyle(fontWeight: FontWeight.bold)),
-                        // Section Images
-                        for (String image in section.images)
-                          Image.network(image, height: 200, width: 200),
-                        // Section Description
-                        Text(section.description??'No Notes', style: TextStyle(color: const Color.fromARGB(255, 92, 92, 92)),),
-                        SizedBox(height: 15),
-                      ],
-                    ),	
-                  // Call Out
-                  // Summary
-                ],
-              ),
-            ),
-          )  
-      ],
+                ),
+              )
+          ],
+        ),
+      ),
     );
   }
 }
