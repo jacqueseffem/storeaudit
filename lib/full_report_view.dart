@@ -52,11 +52,11 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
         });
         return;
       }
-      await getDownloadUrl(image,
+      final url = await getDownloadUrl(image,
           downloadName: widget.report.name ?? 'report', contentType: 'image/png');
       setState(() {
         status = 'Saved!';
-        imageFile = image;
+        downloadUrl = url;
       });
     }).catchError((onError) {
       print(onError);
@@ -126,146 +126,94 @@ class _FullReportViewPageState extends State<FullReportViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Screenshot(
-      controller: screenshotController,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(report.name ?? 'Report Details'),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Text(status),
-              downloadUrl == null
-                  ? SizedBox()
-                  : ElevatedButton(
-                      onPressed: () {
-                        _openUrl(downloadUrl!);
-                      },
-                      child: Text('View PDF'))
-            ],
-          ),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(report.name ?? 'Report Details'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(child: FullReportWidget(report: report)),
       ),
     );
   }
+}
 
-  Future<pw.Widget> buildFullList() async {
-    List<pw.Widget> storeWidgets = [];
-    for (var store in report.stores ?? []) {
-      storeWidgets.add(await buildStoreWidget(store));
-    }
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
+class FullReportWidget extends StatelessWidget {
+  const FullReportWidget({
+    super.key,
+    required this.report,
+  });
+
+  final Report report;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        pw.Text('${report.name}',
-            style: pw.TextStyle(fontSize: 24, font: pw.Font.courier())),
-        // pw.SizedBox(height: 8),
-        // pw.Text('Created: ${report.created}',
-        //     style: pw.TextStyle(fontSize: 16, font: pw.Font.courier())),
-        pw.SizedBox(height: 8),
-        pw.Text('${report.stores?.length ?? ''} Store(s)',
-            style: pw.TextStyle(fontSize: 16, font: pw.Font.courier())),
-        pw.SizedBox(height: 20),
-        report.stores != null
-            ? pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: storeWidgets,
-              )
-            : pw.Text('No stores available',
-                style: pw.TextStyle(fontSize: 12, font: pw.Font.courier())),
+    
+        // Title
+        Text('${report.name}', style: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Colors.black)),
+        SizedBox(height: 0),
+    
+        // Date
+        report.created!=null?
+        Column(
+          children: [
+            Text(_dateTimeToHuman(DateTime.fromMillisecondsSinceEpoch(report.created!)), style: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Colors.black)),
+            SizedBox(height: 20),
+          ],
+        ):SizedBox(),
+        
+    
+        // Date
+    
+        // Stores
+        Text('${report.stores?.length??''} Store(s)', style: Theme.of(context).textTheme.headlineMedium!.copyWith(color: Colors.black)),
+        SizedBox(height: 20),
+        for (Store store in report.stores??[])
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black, width: 1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: EdgeInsets.only(bottom: 40),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                  ),
+                  // Store Name
+                  Text(store.name??'Unnamed Store', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  // Store Sections
+                  for (Section section in store.sections)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section Title
+                        Text(section.title??'Unnamed Section', style: TextStyle(fontWeight: FontWeight.bold)),
+                        // Section Images
+                        for (String image in section.images)
+                          Image.network(image, height: 200, width: 200),
+                        // Section Description
+                        Text(section.description??'No Notes', style: TextStyle(color: const Color.fromARGB(255, 92, 92, 92)),),
+                        SizedBox(height: 15),
+                      ],
+                    ),	
+                  // Call Out
+                  // Summary
+                ],
+              ),
+            ),
+          )  
       ],
     );
   }
+}
 
-  Future<pw.Widget> buildStoreWidget(Store store) async {
-    List<pw.Widget> sections = [];
-    for (var section in store.sections) {
-      try {
-        final sec = await buildSectionWidget(section);
-        sections.add(sec);
-        debugPrint('Built section: ${section.title} in store ${store.name}');
-      } catch (e) {
-        debugPrint('Error building section: $e');
-        continue;
-      }
-    }
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      mainAxisSize: pw.MainAxisSize.min,
-      children: [
-        pw.Text('Store Name: ${store.name ?? 'Unknown'}',
-            style: pw.TextStyle(
-                fontSize: 16,
-                fontWeight: pw.FontWeight.bold,
-                font: pw.Font.courier())),
-        pw.SizedBox(height: 8),
-        // (store.callOuts != null || store.callOuts?.title != null) ? buildCallOutWidget(store.callOuts!) : Container(),
-        // // store.summary != null ? buildSummaryWidget(store.summary!) : Container(),
-        ...sections,
-      ],
-    );
-  }
-
-  // pw.Widget buildCallOutWidget(CallOut callOut) {
-  //   return pw.Column(
-  //     crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //     children: [
-  //       pw.Text('CallOut: ${callOut.title?? ''}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, font: pw.Font.courier())),
-  //       pw.SizedBox(height: 8),
-  //       pw.Column(
-  //         crossAxisAlignment: pw.CrossAxisAlignment.start,
-  //         children: callOut.images.map((image) {
-  //           final netImage = await networkImage()
-  //           return pw.Padding(
-  //           padding: const pw.EdgeInsets.all(8.0),
-  //           child: pw.Image(image, fit: BoxFit.contain, height: 200),
-  //         )).toList(),
-  //       ),
-  //     ],
-  //   );
-  // }
-
-  // Widget buildSummaryWidget(Summary summary) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Text('Summary: ${summary.title}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, font: pw.Font.courier())),
-  //       SizedBox(height: 8),
-  //       Text(summary.description ?? 'No description', font: pw.Font.courier()),
-  //     ],
-  //   );
-  // }
-
-  Future<pw.Widget> buildSectionWidget(Section section) async {
-    List sectionImages = [];
-    for (var imageUrl in section.images) {
-      // final netImage = await networkImage(imageUrl);
-      // sectionImages
-      //     .add(pw.Image(netImage, fit: pw.BoxFit.contain, height: 200));
-    }
-
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      mainAxisSize: pw.MainAxisSize.min,
-      children: [
-        pw.Text('Section: ${section.title}',
-            style: pw.TextStyle(
-                fontSize: 16,
-                fontWeight: pw.FontWeight.bold,
-                font: pw.Font.courier())),
-        pw.SizedBox(height: 8),
-        pw.Text(section.description ?? 'No notes',
-            style: pw.TextStyle(font: pw.Font.courier())),
-        // pw.Column(
-        //   children:
-        //       sectionImages.map((image) => pw.Image(image.image)).toList(),
-        // ),
-        pw.SizedBox(
-          height: 30,
-        ),
-      ],
-    );
-  }
+String _dateTimeToHuman(DateTime dateTime) {
+  return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
 }
