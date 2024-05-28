@@ -6,7 +6,7 @@
   # Use https://search.nixos.org/packages to find packages
   packages = [
     pkgs.nodePackages.firebase-tools
-    pkgs.flutter316
+    pkgs.flutter313
     pkgs.jdk17
     pkgs.unzip
   ];
